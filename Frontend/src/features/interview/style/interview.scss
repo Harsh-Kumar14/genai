@@ -105,6 +105,12 @@ $severity-low: #3fb950;
     }
 }
 
+.nav-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
 .interview-content {
     flex: 1;
     padding: 1.75rem 2rem;

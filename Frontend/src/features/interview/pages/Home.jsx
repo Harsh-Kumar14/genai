@@ -1,11 +1,13 @@
 import React, { useState, useRef } from 'react'
 import "../style/home.scss"
 import { useInterview } from '../hooks/useInterview.js'
+import { useAuth } from '../../auth/hooks/useAuth.js'
 import { useNavigate } from 'react-router'
 
 const Home = () => {
 
     const { loading, generateReport,reports } = useInterview()
+    const { handleLogout } = useAuth()
     const [ jobDescription, setJobDescription ] = useState("")
     const [ selfDescription, setSelfDescription ] = useState("")
     const [ uploadedFile, setUploadedFile ] = useState(null)
@@ -35,6 +37,11 @@ const Home = () => {
         if (!resumeFile) return
         const data = await generateReport({ jobDescription, selfDescription, resumeFile })
         navigate(`/interview/${data._id}`)
+    }
+
+    const onLogout = async () => {
+        await handleLogout()
+        navigate('/login')
     }
 
     if (loading) {
@@ -135,7 +142,13 @@ const Home = () => {
                     </div>
                 </div>
                 <div className='interview-card__footer'>
-                    <span className='footer-info'>AI-Powered Strategy Generation &bull; Approx 30s</span>
+                    <button
+                        onClick={onLogout}
+                        className='generate-btn'
+                        style={{ marginLeft: 0 }}
+                    >
+                        Logout
+                    </button>
                     <button
                         onClick={handleGenerateReport}
                         className='generate-btn'>

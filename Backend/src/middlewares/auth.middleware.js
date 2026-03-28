@@ -1,43 +1,28 @@
-const jwt = require("jsonwebtoken")
-const tokenBlacklistModel = require("../models/blacklist.model")
+const jwt = require("jsonwebtoken");
+const userModel = require("../models/user.model");
+const tokenBlacklistModel = require("../models/blacklist.model");
 
-
-
-async function authUser(req, res, next) {
-
-    const token = req.cookies.token
-
-    if (!token) {
-        return res.status(401).json({
-            message: "Token not provided."
-        })
-    }
-
-    const isTokenBlacklisted = await tokenBlacklistModel.findOne({
-        token
-    })
-
-    if (isTokenBlacklisted) {
-        return res.status(401).json({
-            message: "token is invalid"
-        })
-    }
-
+const authUser = async (req, res, next) => {
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET)
+        const { token } = req.cookies;
+        if (!token) throw new Error("Token is not present");
 
-        req.user = decoded
+        const isTokenBlacklisted = await tokenBlacklistModel.findOne({ token });
+        if (isTokenBlacklisted) throw new Error("Token is invalid");
 
-        next()
+        const payload = jwt.verify(token, process.env.JWT_SECRET);
+        const { _id } = payload;
+        if (!_id) throw new Error("Id is missing");
 
+        const user = await userModel.findById(_id);
+        if (!user) throw new Error("User does not exist");
+
+        req.user = user;
+        next();
     } catch (err) {
-
-        return res.status(401).json({
-            message: "Invalid token."
-        })
+        console.error("Middleware Error:", err.message);
+        res.status(401).json({ error: "Auth Error: " + err.message });
     }
+};
 
-}
-
-
-module.exports = { authUser }
+module.exports = { authUser };
