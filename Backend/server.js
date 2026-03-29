@@ -25,7 +25,7 @@ app.listen(PORT, () => {
 
 // Keep Render free tier alive — works on all Node versions (no fetch needed)
 setInterval(() => {
-    https.get("https://resume-analyzer-ar5m.onrender.com/", (res) => {
+    https.get("https://genai-e60a.onrender.com/", (res) => {
         console.log(`Keep-alive ping: ${res.statusCode}`)
     }).on("error", () => {
         // silently ignore — server may still be waking up
