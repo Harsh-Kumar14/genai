@@ -56,7 +56,7 @@ async function generateWithFallback({ contents, responseSchema }) {
             } catch (err) {
                 lastError = err
 
-                // Retry only transient overload errors; skip retries for invalid requests/model names.
+    
                 if (!isTransientAiError(err)) break
 
                 const delayMs = attempt * 1000
