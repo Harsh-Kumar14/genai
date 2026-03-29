@@ -2,7 +2,7 @@ import axios from "axios"
 
 
 const api = axios.create({
-    baseURL: "https://resume-analyzer-gamma-gray.vercel.app",
+    baseURL: "https://resume-analyzer-ar5m.onrender.com",
     withCredentials: true
 })
 
