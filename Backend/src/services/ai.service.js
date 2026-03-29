@@ -7,7 +7,7 @@ const ai = new GoogleGenAI({
     apiKey: process.env.GOOGLE_GENAI_API_KEY
 })
 
-const DEFAULT_MODELS = [ "gemini-2.0-flash", "gemini-1.5-flash" ]
+const DEFAULT_MODELS = [ "gemini-2.5-flash" ]
 
 function getModelCandidates() {
     const configured = process.env.GEMINI_MODELS
