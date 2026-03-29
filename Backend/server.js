@@ -16,8 +16,11 @@ const connectToDB = require("./src/config/database")
 
 connectToDB()
 
-app.listen(3000, () => {
-    console.log("Server is running on port 3000")
+// ✅ Render requires process.env.PORT — hardcoding 3000 breaks deployment
+const PORT = process.env.PORT || 3000
+
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`)
 })
 
 // Keep Render free tier alive — works on all Node versions (no fetch needed)
