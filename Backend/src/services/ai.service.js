@@ -7,6 +7,67 @@ const ai = new GoogleGenAI({
     apiKey: process.env.GOOGLE_GENAI_API_KEY
 })
 
+const DEFAULT_MODELS = [ "gemini-2.0-flash", "gemini-1.5-flash" ]
+
+function getModelCandidates() {
+    const configured = process.env.GEMINI_MODELS
+    if (!configured) return DEFAULT_MODELS
+
+    const models = configured
+        .split(",")
+        .map((m) => m.trim())
+        .filter(Boolean)
+
+    return models.length ? models : DEFAULT_MODELS
+}
+
+function isTransientAiError(err) {
+    const message = `${err?.message || ""}`.toLowerCase()
+    const status = `${err?.status || ""}`.toLowerCase()
+
+    return (
+        message.includes("503") ||
+        message.includes("unavailable") ||
+        message.includes("high demand") ||
+        message.includes("try again later") ||
+        status === "unavailable"
+    )
+}
+
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function generateWithFallback({ contents, responseSchema }) {
+    const models = getModelCandidates()
+    let lastError = null
+
+    for (const model of models) {
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                return await ai.models.generateContent({
+                    model,
+                    contents,
+                    config: {
+                        responseMimeType: "application/json",
+                        responseSchema,
+                    }
+                })
+            } catch (err) {
+                lastError = err
+
+                // Retry only transient overload errors; skip retries for invalid requests/model names.
+                if (!isTransientAiError(err)) break
+
+                const delayMs = attempt * 1000
+                await sleep(delayMs)
+            }
+        }
+    }
+
+    throw lastError || new Error("AI generation failed")
+}
+
 
 const interviewReportSchema = z.object({
     matchScore: z.number().describe("A score between 0 and 100 indicating how well the candidate's profile matches the job describe"),
@@ -41,16 +102,17 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
                         Job Description: ${jobDescription}
 `
 
-    const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+    const response = await generateWithFallback({
         contents: prompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: zodToJsonSchema(interviewReportSchema),
-        }
+        responseSchema: zodToJsonSchema(interviewReportSchema)
     })
 
-    return JSON.parse(response.text)
+    const rawText = response?.text
+    if (!rawText) {
+        throw new Error("AI returned an empty response")
+    }
+
+    return JSON.parse(rawText)
 
 
 }
@@ -95,17 +157,18 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
                         The resume should not be so lengthy, it should ideally be 1-2 pages long when converted to PDF. Focus on quality rather than quantity and make sure to include all the relevant information that can increase the candidate's chances of getting an interview call for the given job description.
                     `
 
-    const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+    const response = await generateWithFallback({
         contents: prompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: zodToJsonSchema(resumePdfSchema),
-        }
+        responseSchema: zodToJsonSchema(resumePdfSchema)
     })
 
 
-    const jsonContent = JSON.parse(response.text)
+    const rawText = response?.text
+    if (!rawText) {
+        throw new Error("AI returned an empty response")
+    }
+
+    const jsonContent = JSON.parse(rawText)
 
     const pdfBuffer = await generatePdfFromHtml(jsonContent.html)
 

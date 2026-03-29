@@ -36,6 +36,7 @@ const Home = () => {
         const resumeFile = uploadedFile?.file || resumeInputRef.current.files?.[0]
         if (!resumeFile) return
         const data = await generateReport({ jobDescription, selfDescription, resumeFile })
+        if (!data?._id) return
         navigate(`/interview/${data._id}`)
     }
 
